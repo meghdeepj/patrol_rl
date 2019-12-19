@@ -1,5 +1,5 @@
 #MABP python implement /w OpenAI Gym
-#pure exploratory
+#epsilon-greedy algorithm
 import gym
 import pandas as pd
 from gym import envs
