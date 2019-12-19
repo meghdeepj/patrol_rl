@@ -10,7 +10,6 @@ import gym_bandits
 env = gym.make('BanditTenArmedGaussian-v0')
 
 #run this to rand_init the env
-np.random.seed(42)
 env.seed(34)
 
 #number of actions
@@ -23,7 +22,7 @@ q_table=np.zeros(n_ban)
 n_table=np.ones(n_ban)
 
 #epsilon value
-epsilon=0.2
+epsilon=0.1
 
 #get initial observation
 observation = env.reset()
@@ -32,8 +31,8 @@ print("Init Observation: ", observation)
 print(env.action_space)
 
 #iterate over episodes/rounds
-for episode_i in range(20):
-	print("\n\nEpisode number: ", episode_i)
+for instance in range(20):
+	print("\n\nEpisode number: ", instance)
 	
 	r = np.random.random(1)[0]
 	print("random number: ", r)

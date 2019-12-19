@@ -11,7 +11,6 @@ import gym_bandits
 env = gym.make('BanditTenArmedGaussian-v0')
 
 #run this to rand_init the env
-np.random.seed(42)
 env.seed(34)
 
 #number of actions
@@ -35,8 +34,8 @@ rew=[]
 ep =[]
 
 #iterate over episodes/rounds
-for episode_i in range(100):
-	print("\n\nEpisode number: ", episode_i)
+for instance in range(100):
+	print("\n\nEpisode number: ", instance)
 	
 	r = np.random.random(1)[0]
 	print("random number: ", r)
@@ -57,24 +56,26 @@ for episode_i in range(100):
 	#get return values on 4 variables after performing action
 	observation, reward, done, info = env.step(action)
 	rew.append(np.max(q_table))
-	ep.append(episode_i)
-	#UPDATE
+	ep.append(instance)
+	
+	UPDATE
 	n_table[action]+=1
 	q_table[action]=q_table[action]+ (1/n_table[action])*(reward-q_table[action])
-	
 	count+=0.2
 		
-	#See results
+	#See updates
 	print("Observation: ", observation)
 	print("Reward: ", reward)
 	show = pd.DataFrame({'Q-val':q_table, 'n_pulls': n_table})
 	show.index.name='arm'
 	print(show.head(10))
-	
+
+#results
 print("Most rewarding bandit is: ", np.argmax(q_table))
 print("It gave a reward of: ", round(np.max(q_table),3))
 plt.plot(ep,rew)
 plt.show()
+
 #close environment
 env.close()
 
