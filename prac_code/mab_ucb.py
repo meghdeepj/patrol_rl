@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from gym import envs
 import numpy as np
+import seaborn as sns
+sns.set()
 import gym_bandits
 
 #create environment
@@ -67,6 +69,9 @@ for instance in range(1000):
 print("Most rewarding bandit is: ", np.argmax(q_table))
 print("It gave a reward of: ", round(np.max(q_table),3))
 plt.plot(ep,rew)
+plt.title("UCB Algorithm on MAB")
+plt.xlabel("No. of iterations")
+plt.ylabel("Cumulative Expected Reward")
 plt.show()
 
 #close environment
