@@ -21,7 +21,7 @@ print('State space: ', env.nS, "\nAction space: ", env.nA)
 gamma=0.95
 alpha=0.4
 count=1.0
-n_ep=2000
+n_ep=5000
 r_tot=0.
 q = np.zeros([env.nS, env.nA])
 
@@ -55,7 +55,7 @@ for i in range(n_ep):
 		env.render()
 		if done:
 			break
-		#ime.sleep(0.05)
+		#time.sleep(0.1)
 	r+=reward
 	count+=0.01
 	print('episode reward: ', r)
