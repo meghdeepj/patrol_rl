@@ -40,12 +40,13 @@ def ept_greed(state,epsilon):
 			return np.argmax(q[state])
 	else:
 		return env.action_space.sample()
-
+c_re=[]
+ep=[]
 for i in range(n_ep):
 	r=0
 	epsilon=1/count
 	prev_state=env.reset()
-	print('episode no.: ', i)
+	print('::::::::::::::episode no.: ', i, '::::::::::::::')
 	env.render()
 	while True:
 		action = ept_greed(prev_state,epsilon)
@@ -55,13 +56,21 @@ for i in range(n_ep):
 		env.render()
 		if done:
 			break
-		#time.sleep(0.1)
+		#time.sleep(0.20)
 	r+=reward
-	count+=0.01
+	count+=0.02
 	print('episode reward: ', r)
 	r_tot+=r
+	ep.append(i)
+	c_re.append(r_tot/(i+1))
 print('total reward: ', r_tot)
 print('avg reward :', r_tot/n_ep)
 print('final Q: ', q)
+plt.plot(ep,c_re)
+plt.title("Q-Learning on FrozenLake-v0")
+plt.ylim(0,1)
+plt.xlabel("No. of iterations")
+plt.ylabel("Cumulative Average Reward")
+plt.show()
 env.close()
 #end of code
