@@ -23,8 +23,7 @@ q = np.zeros([env.nS, env.nA])
 
 print(q)
 
-def update_q(prev_state, action, reward, next_state, next_action):
-	q[prev_state][action]+=alpha*(reward+(gamma*q[next_state][next_action])-q[prev_state][action])
+#def update_q(prev_state, action, reward, next_state, next_action):
 
 def ept_greed(state,epsilon):
 	rand = np.random.random(1)[0]
@@ -64,7 +63,7 @@ for i in range(n_ep):
 	while True:
 		next_state, reward, done, info = env.step(action)
 		next_action=ept_greed(next_state,epsilon)
-		update_q(prev_state, action, reward, next_state, next_action)
+		q[prev_state][action]+=alpha*(reward+(gamma*q[next_state][next_action])-q[prev_state][action])
 		prev_state=next_state
 		action=next_action
 		env.render()
