@@ -69,6 +69,7 @@ def run():
         s = World.player
         max_act, max_val = max_Q(s)
         (s, a, r, s2) = do_action(max_act)
+        print("LOOK AT THIS PRINT ::::::::", r)
 
         # Update Q
         max_act, max_val = max_Q(s2)
@@ -85,7 +86,7 @@ def run():
         alpha = pow(t, -0.1)
 
         # MODIFY THIS SLEEP IF THE GAME IS GOING TOO FAST.
-        time.sleep(0.1)
+        time.sleep(0.2)
 
 
 t = threading.Thread(target=run)

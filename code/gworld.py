@@ -1,23 +1,28 @@
-__author__ = 'philippe'
+## Multi-agent mixed coop-comp setting RL
+## Setting up reward functions, states and MARL environment
+
+__author__ = 'philippe, edited for MARL by meghdeep'
+import numpy as np
 from tkinter import *
 master = Tk()
 
 
 triangle_size = 0.1
-cell_score_min = -0.2
-cell_score_max = 0.2
+cell_score_min = -0.5
+cell_score_max = 0.5
 Width = 80
-(x, y) = (6, 6)
+(x, y) = (5,5)
 actions = ["up", "down", "left", "right"]
 
 board = Canvas(master, width=x*Width, height=y*Width)
-agents = [(0, 1),(0,5)]
-score = 1
+agents = [(4, 0),(0,4)]
+score = [1,1]
 restart = False
 walk_reward = -0.04
 
-walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (3,3), (0,0)]
-specials = [(4, 1, "red", -1), (5, 3, "red", -1), (1, 0, "green", 1)]
+#walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (3,3), (0,0)]
+walls=[(2,2)]
+specials = [ (4, 4, "green", 2), (0, 0, "red", -2)]
 cell_scores = {}
 
 def create_triangle(i, j, action):
@@ -80,18 +85,19 @@ def try_move(dx, dy, ag_num):
         restart_game()
     new_x = agents[ag_num][0] + dx
     new_y = agents[ag_num][1] + dy
-    score += walk_reward
+    score[ag_num] += walk_reward
     if (new_x >= 0) and (new_x < x) and (new_y >= 0) and (new_y < y) and not ((new_x, new_y) in walls):
         board.coords(me[ag_num], new_x*Width+Width*2/10, new_y*Width+Width*2/10, new_x*Width+Width*8/10, new_y*Width+Width*8/10)
         agents[ag_num] = (new_x, new_y)
     for (i, j, c, w) in specials:
         if new_x == i and new_y == j:
-            score -= walk_reward
-            score += w
-            if score > 0:
-                print("Success! score: ", score)
-            else:
-                print("Fail! score: ", score)
+            score[ag_num] -= walk_reward
+            score[ag_num] += w
+            score[1-ag_num]+=w
+            agent_o = agents[1-ag_num]
+            if not(agent_o[0]== i and agent_o[1] == j):
+                score[1-ag_num]-=np.sqrt((agent_o[0]-4)**2+(agent_o[1]-4)**2)/2
+            print("Score: ", score)
             restart = True
             return
     #print "score: ", score
@@ -115,8 +121,8 @@ def call_right(event):
 
 def restart_game():
     global agents, score, me, restart
-    agents = [(0, 1),(0,4)]
-    score = 1
+    agents = [(4, 0),(0,4)]
+    score = [1,1]
     restart = False
     for i in range(len(agents)):
         board.coords(me[i], agents[i][0]*Width+Width*2/10, agents[i][1]*Width+Width*2/10, agents[i][0]*Width+Width*8/10, agents[i][1]*Width+Width*8/10)
