@@ -1,5 +1,6 @@
 #TD(0) python implement /w OpenAI Gym
 #Q-Learning algorithm on 8x8 FrozenLake
+__author__='meghdeep'
 import gym
 import pandas as pd
 import time
@@ -17,7 +18,7 @@ print('State space: ', env.nS, "\nAction space: ", env.nA)
 gamma=0.95
 alpha=0.3
 count=1.0
-n_ep=10000
+n_ep=5000
 r_tot=0.
 q = np.zeros([env.nS, env.nA])
 
