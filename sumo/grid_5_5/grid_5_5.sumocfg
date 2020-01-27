@@ -1,0 +1,18 @@
+<configuration>
+  <input>
+      <net-file value="grid_5_5.net.xml"/>
+      <route-files value="rw_sim.rou.xml"/>
+      <gui-settings-file value="simulation.settings.xml"/>
+  </input>
+  <time>
+      <begin value="0"/>
+      <end value="200"/>
+  </time>
+  <processing>
+    <collision.action value = "none"/>
+  </processing>
+  <report>
+      <no-duration-log value="true"/>
+      <no-step-log value="true"/>
+  </report>
+</configuration>

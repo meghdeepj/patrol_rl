@@ -43,8 +43,6 @@ DG.add_weighted_edges_from([(1,2,0.5), (3,1, 0.75), (3,2, 1)])
 print(DG.in_degree(1, weight='weight'), DG.degree(1, weight='weight'))
 print(list(DG.neighbors(3)))
 
-
-
 plt.subplot(121)
 nx.draw(DG, with_labels=True, font_weight='bold')
 plt.show()

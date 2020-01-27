@@ -1,4 +1,4 @@
-# Reading graph_ml, accessing nodes, edges and functions
+# Reading graph_ml, accessing nodes, edges and functions+n
 
 import itertools, copy
 import networkx as nx
