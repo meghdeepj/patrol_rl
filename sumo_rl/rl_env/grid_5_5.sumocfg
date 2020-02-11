@@ -1,0 +1,21 @@
+<configuration>
+  <input>
+      <net-file value="grid_5_5.net.xml"/>
+      <route-files value="simulation.rou.xml"/>
+      <gui-settings-file value="simulation.settings.xml"/>
+  </input>
+  <output>
+    <netstate-dump value="netdump.xml"/>
+  </output>
+  <time>
+      <begin value="0"/>
+      <end value="500"/>
+  </time>
+  <processing>
+    <collision.action value = "none"/>
+  </processing>
+  <report>
+      <no-duration-log value="true"/>
+      <no-step-log value="true"/>
+  </report>
+</configuration>

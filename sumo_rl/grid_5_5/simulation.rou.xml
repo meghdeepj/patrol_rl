@@ -1,0 +1,8 @@
+<routes>
+  <vType id="car1" accel="1.0" decel="5.0" length="6.0" maxSpeed="10" sigma="0.0" lcOpposite="inf" />
+  <vType id="bus1" accel="0.7" decel="3.0" length="12.0" maxSpeed="6" sigma="0.0" lcOpposite="inf" />
+  <route id="route0" edges="0to5 5to10 10to15 15to20 20to21 21to16 16to11 11to6 6to1 1to0"/>
+  <vehicle depart="5" id="veh0" route="route0" type="car1"/>
+  <route id="route1" edges="2to7 7to6 6to5 5to0 0to1 1to2"/>
+  <vehicle depart="5" id="veh1" route="route1" type="bus1"/>
+</routes>
