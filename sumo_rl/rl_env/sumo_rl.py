@@ -77,7 +77,32 @@ class rl_env(object):
         return self.state
 #end of class
 
-def greedy_patrol(idle, c, env):
+def eval_met(idle, v_idle,sumo_step, n):
+    avg_v_idl=np.zeros((25,1))
+    max_v_idl=np.zeros((25,1))
+    var_v_idl=np.zeros((25,1))
+    #avg idleness
+    for i in range(n):
+        if v_idle[i]:
+            avg_v_idl[i]=np.sum(np.square(v_idle[i]))/(2*sumo_step)
+    glo_v_idl=np.mean(avg_v_idl)
+    glo_idl= np.mean(idle)
+    #max idleness
+    for i in range(n):
+        if v_idle[i]:
+            max_v_idl[i]=np.max(v_idle[i])
+    glo_max_idl=np.max(idle)
+    glo_max_v_idl=np.max(max_v_idl)
+    #var,stdev and glob stdev
+    for i in range(n):
+        if v_idle[i]:
+            var_v_idl[i]=(np.sum(np.power(v_idle[i],3))/(3*sumo_step))-avg_v_idl[i]
+    sd_v_idl=np.sqrt(var_v_idl)
+    glo_sd_v_idl=np.mean(sd_v_idl)
+    return avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl
+#end of fn
+
+def CR_patrol(idle, c, env):
 
     row=c//5
     col=c%5
@@ -114,11 +139,10 @@ def greedy_patrol(idle, c, env):
     n=row*5+col
     print('cur and next: ', c, n)
     if c==n:
-            action=greedy_patrol(idle,c,env)
+            action=CR_patrol(idle,c,env)
     return action
 
 #end of fn
-
 
 def run(env):
 
@@ -128,6 +152,7 @@ def run(env):
     cr=0.0
     rl_step=1.0
     idle=np.zeros((25,1))
+    v_idle=[[] for _ in range(25)]
     prev_node=env.state
     while traci.simulation.getMinExpectedNumber()>0:
 
@@ -148,8 +173,13 @@ def run(env):
         if prev_node!=curr_node:
             print('Veh angle: ', traci.vehicle.getAngle('veh0'))
             rou_step=[]
-            prev_reward=env.reward_out(idle, prev_node)
+            prev_reward=env.reward_out(idle, prev_node)[0]
             print('reward on prev step: ', prev_reward)
+            v_idle[int(prev_node)].append(prev_reward.copy())
+
+            avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 25)
+
+            print(np.array(v_idle).reshape(5,5))
             rl_step+=1
             cr+=prev_reward
             acr=cr/sumo_step
@@ -157,7 +187,7 @@ def run(env):
             idle[int(prev_node)]=0
             print(idle.reshape(5,5))
             #action=env.sample()
-            action=greedy_patrol(idle,curr_node,env)
+            action=CR_patrol(idle,curr_node,env)
             #action=q_patrol(idle,curr_node,env)
             next_state, reward, action = env.step(action, idle)
             print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
