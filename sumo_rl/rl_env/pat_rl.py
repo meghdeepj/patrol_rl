@@ -2,6 +2,9 @@
 __author__='meghdeep'
 
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
 import os
 import sys
 import optparse
@@ -155,6 +158,8 @@ def run(env):
     v_idle=[[] for _ in range(25)]
     edge=[0,0]
     prev_node=env.state
+    ga=[]
+    ss=[]
     while traci.simulation.getMinExpectedNumber()>0:
 
         traci.simulationStep()
@@ -167,7 +172,6 @@ def run(env):
             curr_node=edge[1:].split('_')
             curr_node=int(curr_node[0])
         env.state=curr_node
-
 
         # Action decision on new edge
         if prev_node!=curr_node:
@@ -182,7 +186,8 @@ def run(env):
             avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 25)
             print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
             print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
-            #print(np.array(v_idle).reshape(5,5))
+            ga.append(glo_v_idl)
+            ss.append(sumo_step)
             rl_step+=1
             cr+=prev_reward
             acr=cr/sumo_step
@@ -190,9 +195,7 @@ def run(env):
             print('')
             idle[int(prev_node)]=0
             print(idle.reshape(5,5))
-            #action=env.sample()
             action=CR_patrol(idle,curr_node,env)
-            #action=q_patrol(idle,curr_node,env)
             next_state, reward, action = env.step(action, idle)
             print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
             rou_new=str(curr_node)+'to'+str(next_state)
@@ -205,17 +208,19 @@ def run(env):
 
         prev_node=curr_node
         sumo_step+=1
+        if sumo_step ==20000:
+            break
 
+    plt.plot(ss,ga)
+    plt.xlabel('Unit Time')
+    plt.ylabel('Global Average Node Visit Idleness')
+    plt.title('Performance')
     traci.close()
+    plt.show()
     sys.stdout.flush()
 #end of fn
 
 if __name__ == '__main__':
-    #traci.start(sumoCmd)
-    # route_0 = ["0to5", "5to10", "10to15", "15to20", "20to21", "21to16", "16to11", "11to6", "6to1", "1to0"]
-    #traci.route.add('rou_0', route_0)
-    #traci.vehicle.add(vehID = 'veh0',routeID = 'rou_0', typeID = "car1")
-    #traci.vehicle.setStop(vehID = 'veh0', edgeID = '1to0', duration = 2000.)
     env=rl_env()
     run(env)
 #end of main

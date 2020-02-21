@@ -2,6 +2,9 @@
 __author__='meghdeep'
 
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
 import os
 import sys
 import optparse
@@ -58,13 +61,13 @@ class rl_env(object):
             row = max(row-1,0)
         self.state[i]=row*5+col
         # print('cur and next: ', curr_state, self.state)
-        self.reward=idle[self.state[i]]
+        self.reward[i]=idle[self.state[i]]
         self.state, self.reward, action=self.check_step(curr_state, self.state, idle, action, i)
         return self.state[i], self.reward, action
 
-    def reward_out(self, idle, prev_node):
-        self.reward = idle[prev_node]
-        return self.reward
+    def reward_out(self, idle, prev_node, i):
+        self.reward[i] = idle[prev_node]
+        return self.reward[i]
 
     def reset(self, route0, route1):
         rou_curr=[[],[]]
@@ -81,6 +84,7 @@ class rl_env(object):
 #end of class
 
 def eval_met(idle, v_idle,sumo_step, n):
+
     avg_v_idl=np.zeros((25,1))
     max_v_idl=np.zeros((25,1))
     var_v_idl=np.zeros((25,1))
@@ -105,8 +109,42 @@ def eval_met(idle, v_idle,sumo_step, n):
     return avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl
 #end of fn
 
-def CR_patrol(idle, c, env):
-    print(c)
+def forb_action(ps, cs, ns):
+    a=-1
+    i=-1
+    k=0
+    n=0
+    bool_f=[True, True, True, True]
+    if ((cs[0]==4) or (cs[1]==4) or (cs[0]==0) or (cs[1]==0) or (cs[0]==20) or (cs[1]==20) or (cs[0]==24) or (cs[1]==24)):
+        k=1
+    if ps[1]==cs[0]:
+        n=cs[1]-cs[0]
+        i=0
+    elif ps[0]==cs[1]:
+        n=cs[0]-cs[1]
+        i=1
+    elif cs[1]==ns[1]:
+        n=ns[0]-cs[1]
+        i=1
+    elif cs[0]==ns[0]:
+        n=ns[1]-cs[0]
+        i=0
+    if n==5:
+        a=0
+    elif n==-5:
+        a=1
+    elif n==1:
+        a=2
+    elif n==-1:
+        a=3
+    if (a!=-1) and (k!=1):
+        bool_f[a]=False
+    #get forbidden actions as bool to neigh
+    return bool_f,i
+#end of fn
+
+def CR_patrol(idle, c, env,fa):
+
     row=c//5
     col=c%5
     neigh=[idle[min(row+1,env.nrow-1)*5+col], idle[max(row-1,0)*5+col], idle[row*5+min(col+1,env.ncol-1)], idle[row*5+max(col-1, 0)]]
@@ -126,7 +164,14 @@ def CR_patrol(idle, c, env):
         neigh[2]=0
     elif c==5 or c==10 or c==15:
         neigh[3]=0
+    f_i = [i for i,j in enumerate(fa) if j==False]
+    if f_i:
+        neigh[f_i[0]]=0
     print(neigh)
+    if sum(neigh)==0:
+        a_i = [i for i,j in enumerate(neigh) if type(j)==np.ndarray]
+        a_i=random.choice(a_i)
+        neigh[a_i]=1
     m = max(neigh)
     idx= [i for i, j in enumerate(neigh) if j == m]
     print('idx: ', idx)
@@ -148,6 +193,7 @@ def CR_patrol(idle, c, env):
 #end of fn
 
 def run(env):
+
     rou_curr0= "0to"+str(random.choice([1,5]))
     rou_curr1= "24to"+str(random.choice([19,23]))
     rou_curr=[rou_curr0, rou_curr1]
@@ -160,13 +206,17 @@ def run(env):
     edge=[0,0]
     prev_node=env.state
     curr_node=[0.0,0.0]
+    temp_n=[0.,0.]
+    temp_p=[0,24]
+    ga=[]
+    ss=[]
     while traci.simulation.getMinExpectedNumber()>0:
 
         traci.simulationStep()
         idle+=1
         edge[0]=traci.vehicle.getRoadID('veh0')
         edge[1]=traci.vehicle.getRoadID('veh1')
-        print(edge)
+        #print('veh edge data: ',edge)
         for i, ed in enumerate(edge):
             if ed and (ed[0]!=':'):
                 curr_node[i]= ed.split('to')
@@ -174,32 +224,40 @@ def run(env):
             elif ed[0]==':':
                 curr_node[i]=ed[1:].split('_')
                 curr_node[i]=int(curr_node[i][0])
-        env.state=curr_node
-        print('p_node:',prev_node, 'c_node:',curr_node)
-
+        env.state=curr_node.copy()
+        #print('p_node:',prev_node, 'c_node:',curr_node, 'temp_p: ', temp_p, 'temp_n: ', temp_n)
         # Action decision on new edge
         for i in range(2):
             if prev_node[i]!=curr_node[i]:
+                temp_p[i]=prev_node[i]
+                print(':::::::::::::to next node for', i, '::::::::::::::::')
+
                 print('Veh angle: ', traci.vehicle.getAngle('veh'+str(i)))
                 rou_step=[]
-                prev_reward=env.reward_out(idle, prev_node[i])[0]
+                prev_reward=env.reward_out(idle, prev_node[i], i)[0]
                 print('reward on prev step: ', prev_reward)
                 v_idle[int(prev_node[i])].append(prev_reward.copy())
-
                 avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 25)
                 print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
                 print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
                 #print(np.array(v_idle).reshape(5,5))
+                ga.append(glo_v_idl)
+                ss.append(sumo_step)
                 cr[i]+=prev_reward
                 #acr=cr/sumo_step
                 #print('acr: ', acr)
                 idle[int(prev_node[i])]=0
                 print(idle.reshape(5,5))
-                #action=env.sample()
-                action=CR_patrol(idle,curr_node[i],env)
-                #action=q_patrol(idle,curr_node,env)
+                fa=[[True, True, True, True], [True, True, True, True]]
+                bool_f, j=forb_action(temp_p, curr_node, temp_n)
+                if j==0 or j==1:
+                    fa[j]= bool_f
+                print(fa)
+                action=CR_patrol(idle,curr_node[i],env, fa[i])
                 next_state, reward, action = env.step(action, idle, i)
+                temp_n[i]=next_state
                 print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
+                #print('curr_node after step: ',curr_node, env.state)
                 rou_new=str(curr_node[i])+'to'+str(next_state)
                 rou_step.append(rou_curr[i])
                 rou_step.append(rou_new)
@@ -207,19 +265,22 @@ def run(env):
                 traci.vehicle.setRoute(vehID = 'veh'+str(i), edgeList = rou_step)
                 rou_curr[i]=rou_new
 
-        prev_node=curr_node
+        prev_node=curr_node.copy()
+        #print('curr route: ',rou_curr)
         sumo_step+=1
+        if sumo_step ==20000:
+            break
 
+    plt.plot(ss,ga)
+    plt.xlabel('Unit Time')
+    plt.ylabel('Global Average Node Visit Idleness')
+    plt.title('Performance')
     traci.close()
+    plt.show()
     sys.stdout.flush()
 #end of fn
 
 if __name__ == '__main__':
-    #traci.start(sumoCmd)
-    # route_0 = ["0to5", "5to10", "10to15", "15to20", "20to21", "21to16", "16to11", "11to6", "6to1", "1to0"]
-    #traci.route.add('rou_0', route_0)
-    #traci.vehicle.add(vehID = 'veh0',routeID = 'rou_0', typeID = "car1")
-    #traci.vehicle.setStop(vehID = 'veh0', edgeID = '1to0', duration = 2000.)
     env=rl_env()
     run(env)
 #end of main

@@ -10,7 +10,6 @@ import sys
 import optparse
 import time
 import random
-from itertools import compress
 
 if 'SUMO_HOME' in os.environ:
     tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
@@ -242,7 +241,7 @@ def run(env):
                 print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
                 print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
                 #print(np.array(v_idle).reshape(5,5))
-                ga.append(glo_idl)
+                ga.append(glo_v_idl)
                 ss.append(sumo_step)
                 cr[i]+=prev_reward
                 #acr=cr/sumo_step
@@ -269,12 +268,12 @@ def run(env):
         prev_node=curr_node.copy()
         #print('curr route: ',rou_curr)
         sumo_step+=1
-        if sumo_step ==10000:
+        if sumo_step ==20000:
             break
 
     plt.plot(ss,ga)
     plt.xlabel('Unit Time')
-    plt.ylabel('Global Average Idleness')
+    plt.ylabel('Global Average Node Visit Idleness')
     plt.title('Performance')
     traci.close()
     plt.show()
