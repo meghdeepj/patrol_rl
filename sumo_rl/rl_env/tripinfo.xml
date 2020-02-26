@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Thursday 20 February 2020 10:12:34 AM IST by Eclipse SUMO GUI Version 1.2.0
+<!-- generated on Wednesday 26 February 2020 12:01:46 PM IST by Eclipse SUMO GUI Version 1.2.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="grid_5_5.net.xml"/>
+        <net-file value="grid_5_5_final.net.xml"/>
         <route-files value="simulation.rou.xml"/>
     </input>
 
@@ -12,11 +12,6 @@
         <netstate-dump value="netdump.xml"/>
         <tripinfo-output value="tripinfo.xml"/>
     </output>
-
-    <time>
-        <begin value="0"/>
-        <end value="500"/>
-    </time>
 
     <processing>
         <collision.action value="none"/>
@@ -28,7 +23,7 @@
     </report>
 
     <traci_server>
-        <remote-port value="34831"/>
+        <remote-port value="37017"/>
     </traci_server>
 
     <gui_only>

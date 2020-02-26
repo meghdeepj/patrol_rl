@@ -109,41 +109,41 @@ def eval_met(idle, v_idle,sumo_step, n):
     return avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl
 #end of fn
 
-def forb_action(ps, cs, ns):
-    a=-1
-    i=-1
-    k=0
-    n=0
-    bool_f=[True, True, True, True]
-    if ((cs[0]==4) or (cs[1]==4) or (cs[0]==0) or (cs[1]==0) or (cs[0]==20) or (cs[1]==20) or (cs[0]==24) or (cs[1]==24)):
-        k=1
-    if ps[1]==cs[0]:
-        n=cs[1]-cs[0]
-        i=0
-    elif ps[0]==cs[1]:
-        n=cs[0]-cs[1]
-        i=1
-    elif cs[1]==ns[1]:
-        n=ns[0]-cs[1]
-        i=1
-    elif cs[0]==ns[0]:
-        n=ns[1]-cs[0]
-        i=0
-    if n==5:
-        a=0
-    elif n==-5:
-        a=1
-    elif n==1:
-        a=2
-    elif n==-1:
-        a=3
-    if (a!=-1) and (k!=1):
-        bool_f[a]=False
-    #get forbidden actions as bool to neigh
-    return bool_f,i
-#end of fn
+# def forb_action(ps, cs, ns):
+#     a=-1
+#     i=-1
+#     k=0
+#     n=0
+#     bool_f=[True, True, True, True]
+#     if ((cs[0]==4) or (cs[1]==4) or (cs[0]==0) or (cs[1]==0) or (cs[0]==20) or (cs[1]==20) or (cs[0]==24) or (cs[1]==24)):
+#         k=1
+#     if ps[1]==cs[0]:
+#         n=cs[1]-cs[0]
+#         i=0
+#     elif ps[0]==cs[1]:
+#         n=cs[0]-cs[1]
+#         i=1
+#     elif cs[1]==ns[1]:
+#         n=ns[0]-cs[1]
+#         i=1
+#     elif cs[0]==ns[0]:
+#         n=ns[1]-cs[0]
+#         i=0
+#     if n==5:
+#         a=0
+#     elif n==-5:
+#         a=1
+#     elif n==1:
+#         a=2
+#     elif n==-1:
+#         a=3
+#     if (a!=-1) and (k!=1):
+#         bool_f[a]=False
+#     #get forbidden actions as bool to neigh
+#     return bool_f,i
+# #end of fn
 
-def CR_patrol(idle, c, env,fa):
+def CR_patrol(idle, c, env):
 
     row=c//5
     col=c%5
@@ -164,14 +164,14 @@ def CR_patrol(idle, c, env,fa):
         neigh[2]=0
     elif c==5 or c==10 or c==15:
         neigh[3]=0
-    f_i = [i for i,j in enumerate(fa) if j==False]
-    if f_i:
-        neigh[f_i[0]]=0
-    print(neigh)
-    if sum(neigh)==0:
-        a_i = [i for i,j in enumerate(neigh) if type(j)==np.ndarray]
-        a_i=random.choice(a_i)
-        neigh[a_i]=1
+    # f_i = [i for i,j in enumerate(fa) if j==False]
+    # if f_i:
+    #     neigh[f_i[0]]=0
+    # print(neigh)
+    # if sum(neigh)==0:
+    #     a_i = [i for i,j in enumerate(neigh) if type(j)==np.ndarray]
+    #     a_i=random.choice(a_i)
+    #     neigh[a_i]=1
     m = max(neigh)
     idx= [i for i, j in enumerate(neigh) if j == m]
     print('idx: ', idx)
@@ -201,19 +201,24 @@ def run(env):
     sumo_step=1.0
     cr=[0.0, 0.0]
     rl_step=1.0
-    idle=np.zeros((25,1))
-    v_idle=[[] for _ in range(25)]
+    idle=[np.zeros((25,1)), np.zeros((25,1))]
+    global_idl=np.zeros((25,1))
+    global_v_idl=[[] for _ in range(25)]
+    v_idle=[[[] for _ in range(25)], [[] for _ in range(25)]]
     edge=[0,0]
     prev_node=env.state
     curr_node=[0.0,0.0]
     temp_n=[0.,0.]
     temp_p=[0,24]
     ga=[]
+    gav=[]
     ss=[]
     while traci.simulation.getMinExpectedNumber()>0:
 
         traci.simulationStep()
-        idle+=1
+        idle[0]+=1
+        idle[1]+=1
+        global_idl+=1
         edge[0]=traci.vehicle.getRoadID('veh0')
         edge[1]=traci.vehicle.getRoadID('veh1')
         #print('veh edge data: ',edge)
@@ -234,27 +239,32 @@ def run(env):
 
                 print('Veh angle: ', traci.vehicle.getAngle('veh'+str(i)))
                 rou_step=[]
-                prev_reward=env.reward_out(idle, prev_node[i], i)[0]
+                glo_reward=env.reward_out(global_idl, prev_node[i], i)[0]
+                prev_reward=env.reward_out(idle[i], prev_node[i], i)[0]
                 print('reward on prev step: ', prev_reward)
-                v_idle[int(prev_node[i])].append(prev_reward.copy())
-                avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 25)
+                v_idle[i][int(prev_node[i])].append(prev_reward.copy())
+                global_v_idl[int(prev_node[i])].append(glo_reward.copy())
+                avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(global_idl, global_v_idl,sumo_step, 25)
                 print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
                 print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
                 #print(np.array(v_idle).reshape(5,5))
-                ga.append(glo_v_idl)
+                gav.append(glo_v_idl)
+                ga.append(glo_idl)
                 ss.append(sumo_step)
                 cr[i]+=prev_reward
                 #acr=cr/sumo_step
                 #print('acr: ', acr)
-                idle[int(prev_node[i])]=0
-                print(idle.reshape(5,5))
-                fa=[[True, True, True, True], [True, True, True, True]]
-                bool_f, j=forb_action(temp_p, curr_node, temp_n)
-                if j==0 or j==1:
-                    fa[j]= bool_f
-                print(fa)
-                action=CR_patrol(idle,curr_node[i],env, fa[i])
-                next_state, reward, action = env.step(action, idle, i)
+                idle[i][int(prev_node[i])]=0
+                global_idl[int(prev_node[i])]=0
+                print('agent_', i, 'idleness:\n',idle[i].reshape(5,5))
+                print('global idleness:\n',global_idl.reshape(5,5))
+                # fa=[[True, True, True, True], [True, True, True, True]]
+                # bool_f, j=forb_action(temp_p, curr_node, temp_n)
+                # if j==0 or j==1:
+                #     fa[j]= bool_f
+                # print(fa)
+                action=CR_patrol(idle[i],curr_node[i],env)
+                next_state, reward, action = env.step(action, idle[i], i)
                 temp_n[i]=next_state
                 print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
                 #print('curr_node after step: ',curr_node, env.state)
@@ -271,9 +281,13 @@ def run(env):
         if sumo_step ==20000:
             break
 
-    plt.plot(ss,ga)
+    plt.plot(ss,ga, "-r", linewidth=0.6,label="Global Average Idleness")
+    plt.plot(ss,gav, "-b", linewidth=4, label="Global Average Node Visit Idleness")
+    plt.legend(loc="lower right")
+    up=np.ceil(max(ga)/10)*10
+    plt.yticks(np.linspace(0,up,(up/10)+1, endpoint=True))
     plt.xlabel('Unit Time')
-    plt.ylabel('Global Average Node Visit Idleness')
+    plt.ylabel('Idleness')
     plt.title('Performance')
     traci.close()
     plt.show()

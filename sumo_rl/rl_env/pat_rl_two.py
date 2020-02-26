@@ -187,15 +187,16 @@ def CR_patrol(idle, c, env,fa):
     n=row*5+col
     print('cur and next: ', c, n)
     if c==n:
-            action=CR_patrol(idle,c,env)
+            action=CR_patrol(idle,c,env, fa)
     return action
 
 #end of fn
 
 def run(env):
-
     rou_curr0= "0to"+str(random.choice([1,5]))
     rou_curr1= "24to"+str(random.choice([19,23]))
+    # rou_curr0= "13to"+str(random.choice([18,12,14,8]))
+    # rou_curr1= "11to"+str(random.choice([16,6,12,10]))
     rou_curr=[rou_curr0, rou_curr1]
     env.reset(rou_curr0, rou_curr1)
     sumo_step=1.0
@@ -209,6 +210,7 @@ def run(env):
     temp_n=[0.,0.]
     temp_p=[0,24]
     ga=[]
+    gav=[]
     ss=[]
     while traci.simulation.getMinExpectedNumber()>0:
 
@@ -241,7 +243,8 @@ def run(env):
                 print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
                 print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
                 #print(np.array(v_idle).reshape(5,5))
-                ga.append(glo_v_idl)
+                gav.append(glo_v_idl)
+                ga.append(glo_idl)
                 ss.append(sumo_step)
                 cr[i]+=prev_reward
                 #acr=cr/sumo_step
@@ -271,9 +274,13 @@ def run(env):
         if sumo_step ==20000:
             break
 
-    plt.plot(ss,ga)
+    plt.plot(ss,ga, "-r", linewidth=0.6,label="Global Average Idleness")
+    plt.plot(ss,gav, "-b", linewidth=4, label="Global Average Node Visit Idleness")
+    plt.legend(loc="lower right")
+    up=np.ceil(max(ga)/10)*10
+    plt.yticks(np.linspace(0,up,(up/10)+1, endpoint=True))
     plt.xlabel('Unit Time')
-    plt.ylabel('Global Average Node Visit Idleness')
+    plt.ylabel('Idleness')
     plt.title('Performance')
     traci.close()
     plt.show()

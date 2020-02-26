@@ -150,6 +150,7 @@ def CR_patrol(idle, c, env):
 def run(env):
 
     rou_curr= "0to"+str(random.choice([1,5]))
+    # rou_curr= "12to"+str(random.choice([11,13,17,7]))
     env.reset(rou_curr)
     sumo_step=1.0
     cr=0.0
@@ -159,6 +160,7 @@ def run(env):
     edge=[0,0]
     prev_node=env.state
     ga=[]
+    gav=[]
     ss=[]
     while traci.simulation.getMinExpectedNumber()>0:
 
@@ -186,7 +188,8 @@ def run(env):
             avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 25)
             print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
             print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
-            ga.append(glo_v_idl)
+            gav.append(glo_v_idl)
+            ga.append(glo_idl)
             ss.append(sumo_step)
             rl_step+=1
             cr+=prev_reward
@@ -211,9 +214,13 @@ def run(env):
         if sumo_step ==20000:
             break
 
-    plt.plot(ss,ga)
+    plt.plot(ss,ga, "-r", linewidth=0.6,label="Global Average Idleness")
+    plt.plot(ss,gav, "-b", linewidth=4, label="Global Average Node Visit Idleness")
+    plt.legend(loc="lower right")
+    up=np.ceil(max(ga)/10)*10
+    plt.yticks(np.linspace(0,up,(up/10)+1, endpoint=True))
     plt.xlabel('Unit Time')
-    plt.ylabel('Global Average Node Visit Idleness')
+    plt.ylabel('Idleness')
     plt.title('Performance')
     traci.close()
     plt.show()
