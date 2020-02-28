@@ -198,6 +198,12 @@ def run(env):
             print('')
             idle[int(prev_node)]=0
             print(idle.reshape(5,5))
+            lane = traci.vehicle.getLaneID('veh0')
+            print(lane)
+            links = traci.lane.getLinks(lane, extended=False)
+            #print(links)
+            s_lanes = [i[0] for i in links]
+            print(s_lanes)
             action=CR_patrol(idle,curr_node,env)
             next_state, reward, action = env.step(action, idle)
             print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)

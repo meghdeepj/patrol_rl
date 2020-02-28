@@ -21,36 +21,34 @@ from sumolib import checkBinary
 
 sys.path.append(os.path.join('c:', os.sep, 'whatever', 'path', 'to', 'sumo', 'tools'))
 sumoBinary = checkBinary("sumo-gui")
-sumoCmd = [sumoBinary, "-c", "grid_5_5.sumocfg", "--tripinfo-output", "tripinfo.xml"]
+# sumoCmd = [sumoBinary, "-c", "grid_5_5.sumocfg", "--tripinfo-output", "tripinfo.xml"]
+sumoCmd = [sumoBinary, "-c", "grid_asym.sumocfg", "--tripinfo-output", "tripinfo.xml"]
 
 import traci
 
 class rl_env(object):
 
     def __init__(self):
-        self.nrow, self.ncol= 5, 5
-        self.stateSpace=np.array([i for i in range(25)])
+        self.nrow, self.ncol= 6, 6
+        self.stateSpace=np.array([i for i in range(36)])
         self.actionSpace = [0, 1, 2, 3]
         #Action space= {'0': 'North', '1': 'South', '2': 'East', '3': 'West'}
         self.state=0
         self.nA = 4
-        self.nS = 25
+        self.nS = 36
         self.reward=0
 
     def sample(self):
         action = random.choice(self.actionSpace)
         return action
 
-    def check_step(self, curr_state, next_state, idle, action):
-        if curr_state==next_state:
-            action=self.sample()
-            self.state, self.reward, action=self.step(action, idle)
-        return self.state, self.reward, action
+    def set_actionSpace(self, n_edges):
+        self.actionSpace = n_edges
 
     def step(self, action, idle):
         curr_state=self.state
-        row=curr_state//5
-        col=curr_state%5
+        row=curr_state//6
+        col=curr_state%6
         if action == 3:
             col = max(col-1, 0)
         elif action == 0:
@@ -59,10 +57,10 @@ class rl_env(object):
             col = min(col+1,self.ncol-1)
         elif action == 1:
             row = max(row-1,0)
-        self.state=row*5+col
+        self.state=row*6+col
         # print('cur and next: ', curr_state, self.state)
         self.reward=idle[self.state]
-        self.state, self.reward, action=self.check_step(curr_state, self.state, idle, action)
+        #self.state, self.reward, action=self.check_step(curr_state, self.state, idle, action)
         return self.state, self.reward, action
 
     def reward_out(self, idle, prev_node):
@@ -81,9 +79,9 @@ class rl_env(object):
 #end of class
 
 def eval_met(idle, v_idle,sumo_step, n):
-    avg_v_idl=np.zeros((25,1))
-    max_v_idl=np.zeros((25,1))
-    var_v_idl=np.zeros((25,1))
+    avg_v_idl=np.zeros((36,1))
+    max_v_idl=np.zeros((36,1))
+    var_v_idl=np.zeros((36,1))
     #avg idleness
     for i in range(n):
         if v_idle[i]:
@@ -107,14 +105,14 @@ def eval_met(idle, v_idle,sumo_step, n):
 
 def run(env):
 
-    rou_curr= "0to"+str(random.choice([1,5]))
+    rou_curr= "12to"+str(random.choice([13]))
     env.reset(rou_curr)
     sumo_step=1.0
     cr=0.0
     rl_step=1.0
-    idle=np.zeros((25,1))
-    v_idle=[[] for _ in range(25)]
-    edge=[0,0]
+    idle=np.zeros((36,1))
+    v_idle=[[] for _ in range(36)]
+    edge=[0]
     ga=[]
     gav=[]
     ss=[]
@@ -143,7 +141,7 @@ def run(env):
             print('reward on prev step: ', prev_reward)
             v_idle[int(prev_node)].append(prev_reward.copy())
 
-            avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 25)
+            avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl = eval_met(idle, v_idle,sumo_step, 36)
             print('global avg node visit idleness: ', glo_v_idl, '\nglobal max node visit idleness: ', glo_max_v_idl)
             print('global avg instant idleness: ', glo_idl, '\nglobal max instant idleness: ', glo_max_idl)
             gav.append(glo_v_idl)
@@ -152,18 +150,27 @@ def run(env):
             cr+=prev_reward
             acr=cr/sumo_step
             idle[int(prev_node)]=0
-            print(idle.reshape(5,5))
-
+            print(idle.reshape(6,6))
+            lane = traci.vehicle.getLaneID('veh0')
+            links = traci.lane.getLinks(lane, extended=False)
+            s_lanes = [i[0] for i in links]
+            n_edges=[]
+            n_nodes=[]
+            for nodes in s_lanes:
+                n_edges.append(nodes.split('_')[0])
+            for edges in n_edges:
+                n_nodes.append(int(edges.split('to')[1]))
+            print(n_edges, n_nodes)
+            env.set_actionSpace(n_edges)
             action=env.sample()
-            next_state, reward, action = env.step(action, idle)
-            print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
-            rou_new=str(curr_node)+'to'+str(next_state)
+            # next_state, reward, action = env.step(action, idle)
+            #print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
             rou_step.append(rou_curr)
-            rou_step.append(rou_new)
+            rou_step.append(action)
             print('next_route: ', rou_step)
             print(':::::::::::::to next node::::::::::::::::')
             traci.vehicle.setRoute(vehID = 'veh0', edgeList = rou_step)
-            rou_curr=rou_new
+            rou_curr=action
 
         prev_node=curr_node
         sumo_step+=1

@@ -32,10 +32,10 @@ class rl_env(object):
         self.stateSpace=np.array([i for i in range(25)])
         self.actionSpace = [0, 1, 2, 3]
         #Action space= {'0': 'North', '1': 'South', '2': 'East', '3': 'West'}
-        self.state=[0.0, 0.0]
+        self.state=[0.0, 0.0, 0.0]
         self.nA = 4
         self.nS = 25
-        self.reward=[0.0, 0.0]
+        self.reward=[0.0, 0.0, 0.0]
 
     def sample(self):
         action = random.choice(self.actionSpace)
@@ -69,17 +69,20 @@ class rl_env(object):
         self.reward[i] = idle[prev_node]
         return self.reward[i]
 
-    def reset(self, route0, route1):
-        rou_curr=[[],[]]
+    def reset(self, route0, route1, route2):
+        rou_curr=[[],[], []]
         rou_curr[0].append(route0)
         rou_curr[1].append(route1)
-        self.state=[0, 24]
-        self.reward=[0.0, 0.0]
+        rou_curr[2].append(route2)
+        self.state=[0, 24, 12]
+        self.reward=[0.0, 0.0, 0.0]
         traci.start(sumoCmd)
         traci.route.add('rou_0', rou_curr[0])
         traci.route.add('rou_1', rou_curr[1])
+        traci.route.add('rou_2', rou_curr[2])
         traci.vehicle.add(vehID = 'veh0',routeID = 'rou_0', typeID = "car1")
         traci.vehicle.add(vehID = 'veh1',routeID = 'rou_1', typeID = "car1")
+        traci.vehicle.add(vehID = 'veh2',routeID = 'rou_2', typeID = "car1")
         return self.state
 #end of class
 
@@ -109,40 +112,6 @@ def eval_met(idle, v_idle,sumo_step, n):
     return avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl
 #end of fn
 
-# def forb_action(ps, cs, ns):
-#     a=-1
-#     i=-1
-#     k=0
-#     n=0
-#     bool_f=[True, True, True, True]
-#     if ((cs[0]==4) or (cs[1]==4) or (cs[0]==0) or (cs[1]==0) or (cs[0]==20) or (cs[1]==20) or (cs[0]==24) or (cs[1]==24)):
-#         k=1
-#     if ps[1]==cs[0]:
-#         n=cs[1]-cs[0]
-#         i=0
-#     elif ps[0]==cs[1]:
-#         n=cs[0]-cs[1]
-#         i=1
-#     elif cs[1]==ns[1]:
-#         n=ns[0]-cs[1]
-#         i=1
-#     elif cs[0]==ns[0]:
-#         n=ns[1]-cs[0]
-#         i=0
-#     if n==5:
-#         a=0
-#     elif n==-5:
-#         a=1
-#     elif n==1:
-#         a=2
-#     elif n==-1:
-#         a=3
-#     if (a!=-1) and (k!=1):
-#         bool_f[a]=False
-#     #get forbidden actions as bool to neigh
-#     return bool_f,i
-# #end of fn
-
 def CR_patrol(idle, c, env):
 
     row=c//5
@@ -164,14 +133,7 @@ def CR_patrol(idle, c, env):
         neigh[2]=0
     elif c==5 or c==10 or c==15:
         neigh[3]=0
-    # f_i = [i for i,j in enumerate(fa) if j==False]
-    # if f_i:
-    #     neigh[f_i[0]]=0
-    # print(neigh)
-    # if sum(neigh)==0:
-    #     a_i = [i for i,j in enumerate(neigh) if type(j)==np.ndarray]
-    #     a_i=random.choice(a_i)
-    #     neigh[a_i]=1
+
     m = max(neigh)
     idx= [i for i, j in enumerate(neigh) if j == m]
     print('idx: ', idx)
@@ -196,20 +158,21 @@ def run(env):
 
     rou_curr0= "0to"+str(random.choice([1,5]))
     rou_curr1= "24to"+str(random.choice([19,23]))
-    rou_curr=[rou_curr0, rou_curr1]
-    env.reset(rou_curr0, rou_curr1)
+    rou_curr2= "12to"+str(random.choice([11,13, 7,17]))
+    rou_curr=[rou_curr0, rou_curr1, rou_curr2]
+    env.reset(rou_curr0, rou_curr1, rou_curr2)
     sumo_step=1.0
-    cr=[0.0, 0.0]
+    cr=[0.0, 0.0, 0.0]
     rl_step=1.0
-    idle=[np.zeros((25,1)), np.zeros((25,1))]
+    idle=[np.zeros((25,1)) for _ in range(3)]
     global_idl=np.zeros((25,1))
     global_v_idl=[[] for _ in range(25)]
-    v_idle=[[[] for _ in range(25)], [[] for _ in range(25)]]
-    edge=[0,0]
+    v_idle=[[[] for _ in range(25)] for _ in range(3)]
+    edge=[0,0,0]
     prev_node=env.state
-    curr_node=[0.0,0.0]
-    temp_n=[0.,0.]
-    temp_p=[0,24]
+    curr_node=[0.0,0.0,0.0]
+    temp_n=[0.,0.,0.]
+    temp_p=[0,24, 12]
     ga=[]
     gav=[]
     ss=[]
@@ -218,9 +181,11 @@ def run(env):
         traci.simulationStep()
         idle[0]+=1
         idle[1]+=1
+        idle[2]+=1
         global_idl+=1
         edge[0]=traci.vehicle.getRoadID('veh0')
         edge[1]=traci.vehicle.getRoadID('veh1')
+        edge[2]=traci.vehicle.getRoadID('veh2')
         #print('veh edge data: ',edge)
         for i, ed in enumerate(edge):
             if ed and (ed[0]!=':'):
@@ -230,9 +195,9 @@ def run(env):
                 curr_node[i]=ed[1:].split('_')
                 curr_node[i]=int(curr_node[i][0])
         env.state=curr_node.copy()
-        #print('p_node:',prev_node, 'c_node:',curr_node, 'temp_p: ', temp_p, 'temp_n: ', temp_n)
+        print('p_node:',prev_node, 'c_node:',curr_node, 'temp_p: ', temp_p, 'temp_n: ', temp_n)
         # Action decision on new edge
-        for i in range(2):
+        for i in range(3):
             if prev_node[i]!=curr_node[i]:
                 temp_p[i]=prev_node[i]
                 print(':::::::::::::to next node for', i, '::::::::::::::::')
