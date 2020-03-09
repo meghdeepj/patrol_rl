@@ -86,8 +86,8 @@ def eval_met(idle, v_idle,sumo_step, n):
     for i in range(n):
         if v_idle[i]:
             avg_v_idl[i]=np.sum(np.square(v_idle[i]))/(2*sumo_step)
-    glo_v_idl=np.mean(avg_v_idl)
-    glo_idl= np.mean(idle)
+    glo_v_idl=np.sum(avg_v_idl)/30
+    glo_idl= np.sum(idle)/30
     #max idleness
     for i in range(n):
         if v_idle[i]:
@@ -99,7 +99,7 @@ def eval_met(idle, v_idle,sumo_step, n):
         if v_idle[i]:
             var_v_idl[i]=(np.sum(np.power(v_idle[i],3))/(3*sumo_step))-avg_v_idl[i]
     sd_v_idl=np.sqrt(var_v_idl)
-    glo_sd_v_idl=np.mean(sd_v_idl)
+    glo_sd_v_idl=np.sum(sd_v_idl)/30
     return avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl
 #end of fn
 
@@ -108,6 +108,7 @@ def run(env):
     rou_curr= "12to"+str(random.choice([13]))
     env.reset(rou_curr)
     sumo_step=1.0
+    bn=[0, 17, 30, 31, 32, 33]
     cr=0.0
     rl_step=1.0
     idle=np.zeros((36,1))
@@ -121,6 +122,8 @@ def run(env):
 
         traci.simulationStep()
         idle+=1
+        for i in bn:
+            idle[i]=0
         edge=traci.vehicle.getRoadID('veh0')
         if edge and (edge[0]!=':'):
             curr_node= edge.split('to')
@@ -129,7 +132,6 @@ def run(env):
             curr_node=edge[1:].split('_')
             curr_node=int(curr_node[0])
         env.state=curr_node
-
 
         # Action decision on new edge
         if prev_node!=curr_node:

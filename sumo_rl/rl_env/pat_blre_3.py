@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
+from itertools import compress
 import os
 import sys
 import optparse
@@ -37,33 +38,18 @@ class rl_env(object):
         self.nS = 25
         self.reward=[0.0, 0.0, 0.0]
 
-    def sample(self):
-        action = random.choice(self.actionSpace)
-        return action
+    def sample(self, nn):
+        act_idx = random.choice([i for i in range(len(nn))])
+        return act_idx
 
-    def check_step(self, curr_state, next_state, idle, action, i):
-        if curr_state==next_state[i]:
-            action=self.sample()
-            self.state, self.reward, action=self.step(action, idle, i)
-        return self.state, self.reward, action
+    def set_actionSpace(self, n_edges):
+        self.actionSpace = n_edges
 
-    def step(self, action, idle, i):
-        curr_state=self.state[i]
-        row=curr_state//5
-        col=curr_state%5
-        if action == 3:
-            col = max(col-1, 0)
-        elif action == 0:
-            row = min(row+1,self.nrow-1)
-        elif action == 2:
-            col = min(col+1,self.ncol-1)
-        elif action == 1:
-            row = max(row-1,0)
-        self.state[i]=row*5+col
+    def step(self, next_state, idle, i):
+        self.state[i]=next_state
         # print('cur and next: ', curr_state, self.state)
         self.reward[i]=idle[self.state[i]]
-        self.state, self.reward, action=self.check_step(curr_state, self.state, idle, action, i)
-        return self.state[i], self.reward, action
+        return self.state[i], self.reward
 
     def reward_out(self, idle, prev_node, i):
         self.reward[i] = idle[prev_node]
@@ -112,86 +98,38 @@ def eval_met(idle, v_idle,sumo_step, n):
     return avg_v_idl, max_v_idl, sd_v_idl, glo_v_idl, glo_max_v_idl, glo_sd_v_idl, glo_idl, glo_max_idl
 #end of fn
 
-def forb_action(ps, cs, ns):
-    a=-1
-    i=-1
-    k=0
-    n=0
-    bool_f=[True, True, True, True]
-    if ((cs[0]==4) or (cs[1]==4) or (cs[0]==0) or (cs[1]==0) or (cs[0]==20) or (cs[1]==20) or (cs[0]==24) or (cs[1]==24)):
-        k=1
-    if ps[1]==cs[0]:
-        n=cs[1]-cs[0]
-        i=0
-    elif ps[0]==cs[1]:
-        n=cs[0]-cs[1]
-        i=1
-    elif cs[1]==ns[1]:
-        n=ns[0]-cs[1]
-        i=1
-    elif cs[0]==ns[0]:
-        n=ns[1]-cs[0]
-        i=0
-    if n==5:
-        a=0
-    elif n==-5:
-        a=1
-    elif n==1:
-        a=2
-    elif n==-1:
-        a=3
-    if (a!=-1) and (k!=1):
-        bool_f[a]=False
-    #get forbidden actions as bool to neigh
-    return bool_f,i
+def negotiator(ps, cs, ns, nn, i):
+    l=[]
+    idx=[]
+    n=[True]*len(nn)
+    r=0
+    l=[not(item) for item in [item in ns for item in nn]]
+    idx= [j for j, x in enumerate(ps) if cs[i]==x]
+    if len(idx) and len(nn):
+        for i in idx:
+            m=[not(item) for item in [item in [cs[i]] for item in nn]]
+            n= [a and b for a, b in zip(n, m)]
+    p= [a and b for a, b in zip(n, l)]
+    an = list(compress(nn, p))
+    if not an:
+        p=[True]*len(nn)
+        r=1
+    return p,r
 #end of fn
 
-def CR_patrol(idle, c, env,fa):
+def BLRE_patrol(idle,c,env, an):
 
-    row=c//5
-    col=c%5
-    neigh=[idle[min(row+1,env.nrow-1)*5+col], idle[max(row-1,0)*5+col], idle[row*5+min(col+1,env.ncol-1)], idle[row*5+max(col-1, 0)]]
-    if c==0:
-        neigh[1], neigh[3]=0,0
-    elif c==20:
-        neigh[0], neigh[3]=0,0
-    elif c==24:
-        neigh[0], neigh[2]=0,0
-    elif c==4:
-        neigh[1], neigh[2]=0,0
-    elif c==21 or c==22 or c==23:
-        neigh[0]=0
-    elif c==1 or c==2 or c==3:
-        neigh[1]=0
-    elif c==9 or c==14 or c==19:
-        neigh[2]=0
-    elif c==5 or c==10 or c==15:
-        neigh[3]=0
-    f_i = [i for i,j in enumerate(fa) if j==False]
-    if f_i:
-        neigh[f_i[0]]=0
+    neigh=[idle[i] for i in an]
     print(neigh)
-    if sum(neigh)==0:
-        a_i = [i for i,j in enumerate(neigh) if type(j)==np.ndarray]
-        a_i=random.choice(a_i)
-        neigh[a_i]=1
     m = max(neigh)
     idx= [i for i, j in enumerate(neigh) if j == m]
     print('idx: ', idx)
-    action=random.choice(idx)
-    if action == 3:
-        col = max(col-1, 0)
-    elif action == 0:
-        row = min(row+1,env.nrow-1)
-    elif action == 2:
-        col = min(col+1,env.ncol-1)
-    elif action == 1:
-        row = max(row-1,0)
-    n=row*5+col
-    print('cur and next: ', c, n)
-    if c==n:
-            action=CR_patrol(idle,c,env, fa)
-    return action
+    act_idx=random.choice(idx)
+    action_node=an[act_idx]
+    print('cur and next: ', c, action_node)
+    if c==action_node:
+            act_idx=CR_patrol(idle,c,env, an)
+    return act_idx
 #end of fn
 
 def run(env):
@@ -231,7 +169,7 @@ def run(env):
                 curr_node[i]=ed[1:].split('_')
                 curr_node[i]=int(curr_node[i][0])
         env.state=curr_node.copy()
-        print('p_node:',prev_node, 'temp_p: ', temp_p, 'c_node:',curr_node, 'temp_n: ', temp_n)
+        # print('p_node:',prev_node, 'temp_p: ', temp_p, 'c_node:',curr_node, 'temp_n: ', temp_n)
         # Action decision on new edge
         for i in range(3):
             if prev_node[i]!=curr_node[i]:
@@ -263,18 +201,21 @@ def run(env):
                 for edges in n_edges:
                     n_nodes.append(int(edges.split('to')[1]))
                 print(n_edges, n_nodes)
-
-                fa = [[True, True, True, True] for _ in range(3)]
-                bool_f, j=forb_action(temp_p, curr_node, temp_n)
-                if j==0 or j==1:
-                    fa[j]= bool_f
-                print(fa)
-                action=CR_patrol(idle,curr_node[i],env, fa[i])
-                next_state, reward, action = env.step(action, idle, i)
+                env.set_actionSpace(n_edges)
+                p, r=negotiator(temp_p, curr_node, temp_n, n_nodes, i)
+                an = list(compress(n_nodes, p))
+                ae = list(compress(n_edges, p))
+                print('allowed nodes{}'.format(an))
+                if r==1:
+                    act_idx=env.sample(an)
+                else:
+                    act_idx=BLRE_patrol(idle,curr_node[i],env, an)
+                action = ae[act_idx]
+                next_state, reward = env.step(an[act_idx], idle, i)
                 temp_n[i]=next_state
                 print('action: ', action, 'next_state: ', next_state, 'reward: ', reward)
                 #print('curr_node after step: ',curr_node, env.state)
-                rou_new=str(curr_node[i])+'to'+str(next_state)
+                rou_new=action
                 rou_step.append(rou_curr[i])
                 rou_step.append(rou_new)
                 print('next_route: ', rou_step)
@@ -284,7 +225,7 @@ def run(env):
         prev_node=curr_node.copy()
         #print('curr route: ',rou_curr)
         sumo_step+=1
-        if sumo_step ==20000:
+        if sumo_step ==10000:
             break
 
     plt.plot(ss,ga, "-r", linewidth=0.6,label="Global Average Idleness")
