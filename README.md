@@ -1,5 +1,5 @@
 # patrol_rl
-Reinforcement Learning for Multi-agent Mobile Robots for Collaborative Patrolling and Surviellance
+Deep Reinforcement Learning for Collaborative Patrolling and Surviellance using Multi-Mobile Robots as Research Assistant, A.R.M.S. Lab, Systems and Control Engineering, IIT Bombay
 
 Courses undertaken during tenure:
   1. CS6700: Reinforcement Learning (IITM, NPTEL)
